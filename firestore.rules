@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Favorite Validation
+    function isValidFavorite(data) {
+      return data.keys().hasAll(['userId', 'verseText', 'verseReference', 'reflectionTitle', 'reflectionBody', 'category', 'createdAt'])
+        && data.keys().size() == 7
+        && data.userId == request.auth.uid
+        && data.verseText is string && data.verseText.size() <= 2000
+        && data.verseReference is string && data.verseReference.size() <= 400
+        && data.reflectionTitle is string && data.reflectionTitle.size() <= 400
+        && data.reflectionBody is string && data.reflectionBody.size() <= 8000
+        && data.category is string && data.category.size() <= 100
+        && data.createdAt == request.time;
+    }
+
+    function isValidStats(data) {
+      return data.keys().hasAll(['userId', 'currentStreak', 'totalActions', 'lastActiveDate', 'updatedAt'])
+        && data.keys().size() == 5
+        && data.userId == request.auth.uid
+        && data.currentStreak is int && data.currentStreak >= 0
+        && data.totalActions is int && data.totalActions >= 0
+        && data.lastActiveDate is string && data.lastActiveDate.size() <= 64
+        && data.updatedAt == request.time;
+    }
+
+    match /favorites/{favoriteId} {
+      allow get: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && isValidFavorite(incoming())
+        && isValidId(favoriteId);
+        
+      allow delete: if isOwner(existing().userId);
+      
+      // Updates are not allowed for favorites, users should delete and re-create if they want to "edit"
+      allow update: if false;
+    }
+
+    match /stats/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidStats(incoming()) && isValidId(userId);
+      allow update: if isOwner(userId) && isValidStats(incoming());
+    }
+  }
+}

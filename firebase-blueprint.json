@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Favorite": {
+      "title": "Favorite Reflection",
+      "description": "A reflection saved by a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "verseText": { "type": "string" },
+        "verseReference": { "type": "string" },
+        "reflectionTitle": { "type": "string" },
+        "reflectionBody": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "verseText", "verseReference", "reflectionTitle", "reflectionBody", "category", "createdAt"]
+    },
+    "Stats": {
+      "title": "User Stats",
+      "description": "Tracking habit and progress",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "currentStreak": { "type": "integer" },
+        "totalActions": { "type": "integer" },
+        "lastActiveDate": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "currentStreak", "totalActions", "lastActiveDate", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/favorites/{favoriteId}": {
+      "schema": "Favorite",
+      "description": "User's saved reflections"
+    },
+    "/stats/{userId}": {
+      "schema": "Stats",
+      "description": "User habit statistics"
+    }
+  }
+}
